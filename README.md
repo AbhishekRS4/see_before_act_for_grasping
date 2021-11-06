@@ -1,8 +1,7 @@
 # Object_grasp_affordance
 
-## To do
-- [ ] add dataset
-- [ ] dataset visualizer
+## The dataset used for training
+* [http://users.umiacs.umd.edu/~fer/affordance/part-affordance-dataset/](http://users.umiacs.umd.edu/~fer/affordance/part-affordance-dataset/)
 
 ## References
-* [Learning to Grasp 3D Objects using Deep Residual U-Nets](https://arxiv.org/abs/2002.03892)
+* [Learning to See before Learning to Act: Visual Pre-training for Manipulation](http://yenchenlin.me/vision2action/)
