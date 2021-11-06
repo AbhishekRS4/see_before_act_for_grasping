@@ -1,5 +1,11 @@
 # Object_grasp_affordance
 
+## Instruction to run training
+* To list training options
+```
+python3 src/train.py --help
+```
+
 ## The dataset used for training
 * [http://users.umiacs.umd.edu/~fer/affordance/part-affordance-dataset/](http://users.umiacs.umd.edu/~fer/affordance/part-affordance-dataset/)
 
