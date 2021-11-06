@@ -1,4 +1,7 @@
-# Object_grasp_affordance
+# Object grasp affordance
+
+## Base model
+* The base model used is densenet121
 
 ## Instruction to run training
 * To list training options
