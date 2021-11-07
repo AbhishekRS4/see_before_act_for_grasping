@@ -1,4 +1,5 @@
 import os
+import time
 import argparse
 import datetime
 import numpy as np
@@ -9,13 +10,31 @@ import torch.nn.functional as F
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
+from loss_metrics import *
 from model import GraspAffordanceNet
 from dataset import RGBDGraspAffordanceDataset
 
-def compute_bce_loss(pred, label):
-    bce_loss = F.binary_cross_entropy_with_logits(pred, label)
+def validation_loop(dataset_loader, model):
+    size = len(dataset_loader.dataset)
+    num_batches = len(dataset_loader)
+    valid_loss, valid_acc, valid_iou = 0, 0, 0
 
-    return bce_loss
+    with torch.no_grad():
+        for x, label in dataset_loader:
+            input_color, input_depth = x
+            pred = model(input_color.float(), input_depth.float())
+
+            pred_probs = torch.sigmoid(pred)
+            pred_label = pred_probs > 0.5
+
+            valid_loss += compute_bce_loss(pred, label.float())
+            valid_acc += compute_mean_pixel_acc(pred_label, label)
+            valid_iou += compute_mean_iou(pred_label, label)
+
+    valid_loss /= num_batches
+    valid_acc /= num_batches
+    valid_iou /= num_batches
+    print(f"Validation metrics, mean accuracy: {valid_acc:0.4f}, mean iou: {valid_iou:.4f}, mean loss: {valid_loss:.4f}\n")
 
 def train_loop(dataset_loader, model, optimizer):
     size = len(dataset_loader.dataset)
@@ -40,21 +59,32 @@ def train_loop(dataset_loader, model, optimizer):
 def batch_train(FLAGS):
     os.makedirs(FLAGS.dir_model)
 
-    train_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_dataset,
+    train_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_train_dataset,
         transforms.Compose([transforms.ToTensor()]))
     train_dataset_loader = DataLoader(train_dataset, batch_size=FLAGS.batch_size, shuffle=False)
+
+    valid_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_valid_dataset,
+        transforms.Compose([transforms.ToTensor()]))
+    valid_dataset_loader = DataLoader(valid_dataset, batch_size=FLAGS.batch_size, shuffle=False)
+
     grasp_aff_model = GraspAffordanceNet()
     optimizer = torch.optim.SGD(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
         momentum=0.9, weight_decay=2e-5)
 
     for epoch in range(FLAGS.num_epochs):
-        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs}")
+        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs} start")
+        t_1 = time.time()
         train_loop(train_dataset_loader, grasp_aff_model, optimizer)
+        t_2 = time.time()
         torch.save(grasp_aff_model.state_dict(), os.path.join(FLAGS.dir_model, f"{FLAGS.file_model}_{epoch+1}.pt"))
-        print("-"*20)
+        print("-"*30)
+        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs} end, time: {(t_2-t_1):.2f} sec.")
+        validation_loop(valid_dataset_loader, grasp_aff_model)
+
 
 def main():
-    dir_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative/"
+    dir_train_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative_train/"
+    dir_valid_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative_valid/"
     pretrained = True
     learning_rate = 1e-4
     num_epochs = 25
@@ -66,8 +96,10 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("--dir_dataset", default=dir_dataset,
-        type=str, help="directory with validation labels")
+    parser.add_argument("--dir_train_dataset", default=dir_train_dataset,
+        type=str, help="directory with train dataset")
+    parser.add_argument("--dir_valid_dataset", default=dir_valid_dataset,
+        type=str, help="directory with validation dataset")
 
     parser.add_argument("--pretrained", default=1,
         type=int, choices=[0, 1], help="use pretrained encoder (1:True, 0:False)")
