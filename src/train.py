@@ -1,5 +1,6 @@
 import os
 import time
+import math
 import argparse
 import datetime
 import numpy as np
@@ -11,6 +12,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from loss_metrics import *
+from utils import CSVWriter
 from model import GraspAffordanceNet
 from dataset import RGBDGraspAffordanceDataset
 
@@ -34,10 +36,13 @@ def validation_loop(dataset_loader, model):
     valid_loss /= num_batches
     valid_acc /= num_batches
     valid_iou /= num_batches
-    print(f"Validation metrics, mean accuracy: {valid_acc:0.4f}, mean iou: {valid_iou:.4f}, mean loss: {valid_loss:.4f}\n")
+    return valid_loss, valid_acc, valid_iou
 
 def train_loop(dataset_loader, model, optimizer):
     size = len(dataset_loader.dataset)
+    num_batches = len(dataset_loader)
+    train_loss = 0
+
     for batch, data in enumerate(dataset_loader):
         # Compute prediction and loss
         (input_color, input_depth), label = data
@@ -52,12 +57,14 @@ def train_loop(dataset_loader, model, optimizer):
         loss.backward()
         optimizer.step()
 
-        #f batch % 100 == 0:
-        loss, current = loss.item(), batch * len(input_color)
-        print(f"loss: {loss:.4f}, batch: [{current}/{size}]")
+        train_loss += loss
+    train_loss /= num_batches
+    return train_loss#.detach().cpu().numpy()
 
 def batch_train(FLAGS):
     os.makedirs(FLAGS.dir_model)
+    csv_writer = CSVWriter(file_name=os.path.join(FLAGS.dir_model, "train_metrics.csv"),
+        column_names=["epoch", "train_loss", "valid_loss", "valid_acc", "valid_iou"])
 
     train_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_train_dataset,
         transforms.Compose([transforms.ToTensor()]))
@@ -71,16 +78,19 @@ def batch_train(FLAGS):
     optimizer = torch.optim.SGD(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
         momentum=0.9, weight_decay=2e-5)
 
+    print("Training for Grasp part affordance prediction")
     for epoch in range(FLAGS.num_epochs):
-        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs} start")
         t_1 = time.time()
-        train_loop(train_dataset_loader, grasp_aff_model, optimizer)
+        train_loss = train_loop(train_dataset_loader, grasp_aff_model, optimizer)
         t_2 = time.time()
+        print("-"*100)
+        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs}, train loss: {train_loss:.4f}, time: {(t_2-t_1):.2f} sec.")
+        valid_loss, valid_acc, valid_iou = validation_loop(valid_dataset_loader, grasp_aff_model)
+        print(f"validation loss: {valid_loss:.4f}, validation accuracy: {valid_acc:.4f}, validation iou: {valid_iou:.4f}")
+        csv_writer.write_row([epoch+1, train_loss, valid_loss, valid_acc, valid_iou])
         torch.save(grasp_aff_model.state_dict(), os.path.join(FLAGS.dir_model, f"{FLAGS.file_model}_{epoch+1}.pt"))
-        print("-"*30)
-        print(f"Epoch : {epoch+1}/{FLAGS.num_epochs} end, time: {(t_2-t_1):.2f} sec.")
-        validation_loop(valid_dataset_loader, grasp_aff_model)
-
+    print("Training complete!!!!")
+    csv_writer.close()
 
 def main():
     dir_train_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative_train/"
