@@ -50,7 +50,7 @@ def compute_mean_pixel_acc(pred, label):
     mean_pixel_accuracy = acc_sum / label.shape[0]
     return mean_pixel_accuracy
 
-def compute_mean_iou(pred, label):
+def compute_mean_iou(pred, label, smooth=1e-5):
     if label.shape != pred.shape:
         print("label has dimension", label.shape, ", pred values have shape", pred.shape)
         return
@@ -67,10 +67,7 @@ def compute_mean_iou(pred, label):
 
         intersection = np.logical_and(label_arr, pred_arr).sum()
         union = np.logical_or(label_arr, pred_arr).sum()
-        if union == 0:
-            iou_score = 0
-        else:
-            iou_score = intersection / union
+        iou_score = (intersection + smooth) / (union + smooth)
         iou_sum += iou_score
 
     mean_iou = iou_sum / label.shape[0]
