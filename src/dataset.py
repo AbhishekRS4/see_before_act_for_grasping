@@ -20,13 +20,14 @@ class RGBDGraspAffordanceDataset(Dataset):
         #self.depth_mean = np.array([0.522, 0.522, 0.522]).reshape(1, 3)
         #self.depth_std = np.array([0.272, 0.272, 0.272]).reshape(1, 3)
 
-        self.depth_mean = np.array([0.01, 0.01, 0.01]).reshape(1, 3)
-        self.depth_std = np.array([0.03, 0.03, 0.03]).reshape(1, 3)
+        #self.depth_mean = np.array([0.01, 0.01, 0.01]).reshape(1, 3)
+        #self.depth_std = np.array([0.03, 0.03, 0.03]).reshape(1, 3)
 
         self.transform = transform
 
     def __len__(self):
-        return len(self.depth_images_list)
+        #return len(self.depth_images_list)
+        return len(self.color_images_list)
 
     def __getitem__(self, idx):
         label = loadmat(os.path.join(self.dir_dataset, self.labels_list[idx]))["gt_label"]
@@ -37,14 +38,15 @@ class RGBDGraspAffordanceDataset(Dataset):
         color_image = color_image.astype(np.float32) / 255.
         color_image = (color_image - self.color_mean) / self.color_std
 
-        depth_image = imread(os.path.join(self.dir_dataset, self.depth_images_list[idx]))
-        max_depth = np.max(depth_image)
-        depth_image = depth_image.astype(np.float32) / max_depth
-        depth_image = np.repeat(np.expand_dims(depth_image, -1), 3, -1)
-        depth_image = (depth_image - self.depth_mean) / self.depth_std
+        #depth_image = imread(os.path.join(self.dir_dataset, self.depth_images_list[idx]))
+        #max_depth = np.max(depth_image)
+        #depth_image = depth_image.astype(np.float32) / max_depth
+        #depth_image = np.repeat(np.expand_dims(depth_image, -1), 3, -1)
+        #depth_image = (depth_image - self.depth_mean) / self.depth_std
 
         if self.transform:
             color_image = self.transform(color_image)
-            depth_image = self.transform(depth_image)
+            #depth_image = self.transform(depth_image)
 
-        return (color_image, depth_image), label
+        return color_image, label
+        #return (color_image, depth_image), label
