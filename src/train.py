@@ -17,21 +17,25 @@ from model import GraspAffordanceNet
 from dataset import RGBDGraspAffordanceDataset
 
 def validation_loop(dataset_loader, model, use_cuda=False):
+    bce_loss = get_bce_loss()
     size = len(dataset_loader.dataset)
     num_batches = len(dataset_loader)
     valid_loss, valid_acc, valid_iou = 0, 0, 0
+    model.eval()
 
     with torch.no_grad():
         for x, label in dataset_loader:
             input_color, input_depth = x
             if use_cuda:
-                input_color, input_depth, label = input_color.cuda(), input_depth.cuda(), label.cuda()
-            pred = model(input_color.float(), input_depth.float())
+                if torch.cuda.device_count() > 0:
+                    input_color, input_depth, label = input_color.cuda(), input_depth.cuda(), label.cuda()
+            pred_logits = model(input_color.float(), input_depth.float())
 
-            pred_probs = torch.sigmoid(pred)
+            pred_probs = torch.sigmoid(pred_logits)
             pred_label = pred_probs > 0.5
 
-            valid_loss += compute_bce_loss(pred, label.float())
+            #valid_loss += (bce_loss(pred, label.float()) + compute_dice_loss(pred, label.float()))
+            valid_loss += bce_loss(pred_logits, label.float())
             valid_acc += compute_mean_pixel_acc(pred_label, label)
             valid_iou += compute_mean_iou(pred_label, label)
 
@@ -41,20 +45,26 @@ def validation_loop(dataset_loader, model, use_cuda=False):
     return valid_loss, valid_acc, valid_iou
 
 def train_loop(dataset_loader, model, optimizer, use_cuda=False):
+    bce_loss = get_bce_loss()
     size = len(dataset_loader.dataset)
     num_batches = len(dataset_loader)
     train_loss = 0
+    model.train()
 
     for batch, data in enumerate(dataset_loader):
         # Compute prediction and loss
         (input_color, input_depth), label = data
         if use_cuda:
-            input_color, input_depth, label = input_color.cuda(), input_depth.cuda(), label.cuda()
+            if torch.cuda.device_count() > 0:
+                input_color, input_depth, label = input_color.cuda(), input_depth.cuda(), label.cuda()
         #print(input_color.shape, input_color.dtype)
         #print(input_depth.shape, input_depth.dtype)
         #print(label.shape, label.dtype)
         pred = model(input_color.float(), input_depth.float())
-        loss = compute_bce_loss(pred, label.float())
+        loss_1 = bce_loss(pred, label.float())
+        #loss_1 = 0
+        #loss_2 = compute_dice_loss(pred, label.float())
+        loss = loss_1# + loss_2
 
         # Backpropagation
         optimizer.zero_grad()
@@ -63,7 +73,7 @@ def train_loop(dataset_loader, model, optimizer, use_cuda=False):
 
         train_loss += loss
     train_loss /= num_batches
-    return train_loss#.detach().cpu().numpy()
+    return train_loss
 
 def batch_train(FLAGS):
     os.makedirs(FLAGS.dir_model)
@@ -78,12 +88,19 @@ def batch_train(FLAGS):
         transforms.Compose([transforms.ToTensor()]))
     valid_dataset_loader = DataLoader(valid_dataset, batch_size=FLAGS.batch_size, shuffle=False)
 
-    grasp_aff_model = GraspAffordanceNet()
+    grasp_aff_model = GraspAffordanceNet(pretrained=bool(FLAGS.pretrained))
     if FLAGS.use_cuda:
-        grasp_aff_model.cuda()
-    optimizer = torch.optim.SGD(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
-        momentum=0.9, weight_decay=2e-5)
+        if torch.cuda.device_count() > 0:
+            grasp_aff_model.cuda()
 
+    #"""
+    optimizer = torch.optim.SGD(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
+        momentum=0.9)
+    """
+    optimizer = torch.optim.Adam(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
+        weight_decay=0)
+    """
+    #print(grasp_aff_model.parameters())
     print("Training for Grasp part affordance prediction")
     for epoch in range(FLAGS.num_epochs):
         t_1 = time.time()
@@ -99,12 +116,11 @@ def batch_train(FLAGS):
     csv_writer.close()
 
 def main():
-    dir_train_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative_train/"
-    dir_valid_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part-affordance-clutter/clutter/scene_cumulative_valid/"
-    pretrained = True
+    dir_train_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part_affordance_subset/clutter/clutter_train/"
+    dir_valid_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part_affordance_subset/clutter/clutter_valid/"
     learning_rate = 1e-4
-    num_epochs = 25
-    batch_size = 4
+    num_epochs = 35
+    batch_size = 2
     dir_model = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_model = "affordance_net"
 
@@ -119,7 +135,7 @@ def main():
 
     parser.add_argument("--pretrained", default=1,
         type=int, choices=[0, 1], help="use pretrained encoder (1:True, 0:False)")
-    parser.add_argument("--use_cuda", default=0, type=int,
+    parser.add_argument("--use_cuda", default=1, type=int,
         choices=[0, 1], help="use gpu for training (1:True, 0:False)")
 
     parser.add_argument("--learning_rate", default=learning_rate,
