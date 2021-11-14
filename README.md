@@ -1,4 +1,4 @@
-# Object grasp affordance
+# Object part grasp affordance
 
 ## Base model
 * The base model used is densenet121
