@@ -1,7 +1,7 @@
 # Object part grasp affordance
 
-## Base model
-* There are 2 base models. One with densenet121 and another with resnet-18
+## Pretrained models used for vision tasks
+* There are 2 base models. One with densenet-121 and another with resnet-18
 
 ## Instruction to run training
 * To list training options
