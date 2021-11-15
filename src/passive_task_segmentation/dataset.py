@@ -17,9 +17,6 @@ class RGBDGraspAffordanceDataset(Dataset):
         self.color_mean = np.array([0.485, 0.456, 0.406]).reshape(1, 3)
         self.color_std = np.array([0.229, 0.224, 0.225]).reshape(1, 3)
 
-        #self.depth_mean = np.array([0.522, 0.522, 0.522]).reshape(1, 3)
-        #self.depth_std = np.array([0.272, 0.272, 0.272]).reshape(1, 3)
-
         self.depth_mean = np.array([0.01, 0.01, 0.01]).reshape(1, 3)
         self.depth_std = np.array([0.03, 0.03, 0.03]).reshape(1, 3)
 

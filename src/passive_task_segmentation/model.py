@@ -5,8 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torchvision.models import resnet18
 from torchvision.models.densenet import densenet121
-from torchvision.models import resnet18, resnet50
 
 class GraspAffordanceSegNet(nn.Module):
     def __init__(self, pretrained=True):
