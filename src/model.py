@@ -6,22 +6,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision.models.densenet import densenet121
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet50
 
-class GraspAffordanceNet(nn.Module):
+class GraspAffordanceSegNet(nn.Module):
     def __init__(self, pretrained=True):
-        super(GraspAffordanceNet, self).__init__()
-        #self.grasp_color_encoder = densenet121(pretrained=pretrained)
-        self.grasp_color_encoder = resnet50(pretrained=pretrained)
-        #self.grasp_depth_encoder = densenet121(pretrained=pretrained)
-        #self.grasp_depth_encoder = densenet121(pretrained=False)
+        super(GraspAffordanceSegNet, self).__init__()
+        self.grasp_color_encoder = densenet121(pretrained=pretrained)
+        self.grasp_depth_encoder = densenet121(pretrained=pretrained)
 
         """
         self.graspnet = nn.Sequential(OrderedDict(
             [
-                ("grasp-norm0", nn.BatchNorm2d(2048)),
                 ("grasp-relu0", nn.ReLU(inplace=True)),
-                ("grasp-conv0", nn.Conv2d(2048, 64, kernel_size=1, stride=1, bias=False)),
+                ("grasp-conv0", nn.Conv2d(2048, 512, kernel_size=1, stride=1, bias=False)),
                 ("grasp-norm1", nn.BatchNorm2d(64)),
                 ("grasp-relu1", nn.ReLU(inplace=True)),
                 #("grasp-conv1", nn.Conv2d(64, 1, kernel_size=1, stride=1, bias=False)),
@@ -33,62 +30,45 @@ class GraspAffordanceNet(nn.Module):
         self.graspnet = nn.Sequential(OrderedDict(
             [
                 ("grasp-relu0", nn.ReLU(inplace=True)),
-                #("grasp-conv0", nn.Conv2d(2048, 256, kernel_size=1, stride=1, bias=False, padding="same")),
-                ("grasp-conv0", nn.Conv2d(1024, 256, kernel_size=1, stride=1, padding="same")),
+                ("grasp-conv0", nn.Conv2d(2048, 512, kernel_size=1, stride=1, padding="same")),
                 ("grasp-relu1_1", nn.ReLU(inplace=True)),
-                ("grasp-conv1_1", nn.Conv2d(256, 256, kernel_size=3, stride=1, padding="same")),
+                ("grasp-conv1_1", nn.Conv2d(512, 512, kernel_size=3, stride=1, padding="same")),
                 ("grasp-relu1_2", nn.ReLU(inplace=True)),
-                ("grasp-conv1_2", nn.Conv2d(256, 256, kernel_size=3, stride=1, padding="same")),
-                ("grasp-relu1_3", nn.ReLU(inplace=True)),
-                ("grasp-conv-up1_3", nn.ConvTranspose2d(256, 64, kernel_size=4, stride=4, bias=False, output_padding=0)),
+                ("grasp-conv-up1_2", nn.ConvTranspose2d(512, 128, kernel_size=4, stride=4, bias=False, output_padding=0)),
                 ("grasp-relu2_1", nn.ReLU(inplace=True)),
-                ("grasp-conv2_1", nn.Conv2d(64, 64, kernel_size=5, stride=1, padding="same")),
+                ("grasp-conv2_1", nn.Conv2d(128, 128, kernel_size=3, stride=1, padding="same")),
                 ("grasp-relu2_2", nn.ReLU(inplace=True)),
-                ("grasp-conv2_2", nn.Conv2d(64, 64, kernel_size=5, stride=1, padding="same")),
-                ("grasp-relu2_3", nn.ReLU(inplace=True)),
-                ("grasp-conv-up2_3", nn.ConvTranspose2d(64, 16, kernel_size=4, stride=4, bias=False, output_padding=0)),
+                ("grasp-conv-up2_2", nn.ConvTranspose2d(128, 32, kernel_size=4, stride=4, bias=False, output_padding=0)),
                 ("grasp-relu3_1", nn.ReLU(inplace=True)),
-                ("grasp-conv3_1", nn.Conv2d(16, 16, kernel_size=7, stride=1, padding="same")),
+                ("grasp-conv3_1", nn.Conv2d(32, 32, kernel_size=3, stride=1, padding="same")),
                 ("grasp-relu3_2", nn.ReLU(inplace=True)),
-                ("grasp-conv3_2", nn.Conv2d(16, 16, kernel_size=7, stride=1, padding="same")),
-                ("grasp-relu3_3", nn.ReLU(inplace=True)),
-                ("grasp-conv-up3_3", nn.ConvTranspose2d(16, 8, kernel_size=2, stride=2, bias=False, output_padding=0)),
+                ("grasp-conv-up3_2", nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2, bias=False, output_padding=0)),
                 ("grasp-relu4", nn.ReLU(inplace=True)),
-                ("grasp-final-conv", nn.Conv2d(8, 1, kernel_size=1, stride=1, bias=False))
             ]
         ))
-        """
+
         self.final_conv = nn.Sequential(OrderedDict(
             [
-                ("grasp-final-conv", nn.Conv2d(8, 1, kernel_size=1, stride=1, bias=False))
-                #("grasp-final-conv", nn.Conv2d(1, 1, kernel_size=1, stride=1, bias=False))
+                ("grasp-final-conv", nn.Conv2d(16, 1, kernel_size=1, stride=1, bias=False))
             ]
         ))
-        """
 
         for m in self.named_modules():
             if "grasp-" in m[0]:
                 if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.ConvTranspose2d):
-                    #nn.init.kaiming_normal_(m[1].weight.data)
-                    nn.init.xavier_uniform_(m[1].weight.data)
-                elif isinstance(m[1], nn.BatchNorm2d):
-                    m[1].weight.data.fill_(1)
-                    m[1].bias.data.zero_()
+                    nn.init.xavier_normal_(m[1].weight.data)
 
-    def forward(self, input_color_data):#, input_depth_data):
+    def forward(self, input_color_data, input_depth_data):
         interm_grasp_color_feat = self.grasp_color_encoder.features(input_color_data)
-        #interm_grasp_depth_feat = self.grasp_depth_encoder.features(input_depth_data)
+        interm_grasp_depth_feat = self.grasp_depth_encoder.features(input_depth_data)
         #print(interm_grasp_color_feat.shape)
         #print(interm_grasp_depth_feat.shape)
 
-        interm_grasp_feat = interm_grasp_color_feat
-        #interm_grasp_feat = torch.cat((interm_grasp_color_feat, interm_grasp_depth_feat), dim=1)
-        #interm_grasp_feat = torch.add(interm_grasp_color_feat, interm_grasp_depth_feat)
+        interm_grasp_feat = torch.cat((interm_grasp_color_feat, interm_grasp_depth_feat), dim=1)
         #print(interm_grasp_feat.shape)
 
-        #g_net_output = nn.Upsample(scale_factor=32, mode="bilinear", align_corners=True).forward(self.graspnet(interm_grasp_feat))
-        output_logits = self.graspnet(interm_grasp_feat)
-        #output_logits = self.final_conv(g_net_output)
+        output_g_net = self.graspnet(interm_grasp_feat)
+        output_logits = self.final_conv(output_g_net)
 
         return output_logits
 
@@ -97,7 +77,6 @@ def convrelu(in_channels, out_channels, kernel, padding):
         nn.Conv2d(in_channels, out_channels, kernel, padding=padding),
         nn.ReLU(inplace=True),
     )
-
 
 class ResNetUNet(nn.Module):
     def __init__(self, n_class):
