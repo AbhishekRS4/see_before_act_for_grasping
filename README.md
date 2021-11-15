@@ -1,7 +1,9 @@
-# Object part grasp affordance
+# Object part grasp affordance (as segmentation)
 
-## Base model
-* The base model used is densenet121
+## Pretrained models used for vision tasks
+* We used 2 pre-trained models
+* One is densenet-121 and another is resnet-18
+* The vision task used for learning is object part grasp affordance as segmentation
 
 ## Instruction to run training
 * To list training options
