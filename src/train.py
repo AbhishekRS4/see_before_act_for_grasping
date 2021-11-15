@@ -14,27 +14,28 @@ from torch.utils.data import DataLoader
 
 from loss_metrics import *
 from utils import CSVWriter
-from model import GraspAffordanceNet, ResNetUNet
+from model import GraspAffordanceSegNet, ResNetUNet
 from dataset import RGBDGraspAffordanceDataset
 
 def validation_loop(dataset_loader, model, device):
+    model.eval()
     bce_loss = get_bce_loss()
     size = len(dataset_loader.dataset)
     num_batches = len(dataset_loader)
     valid_loss, valid_acc, valid_iou = 0, 0, 0
-    model.eval()
 
     with torch.no_grad():
-        for input_color, label in dataset_loader:
-            #input_color, input_depth, label = input_color.cuda(), input_depth.cuda(), label.cuda()
-            input_color, label = input_color.to(device, dtype=torch.float), label.to(device, dtype=torch.float)
-            pred_logits = model(input_color)#, input_depth.float())
+        for data, label in dataset_loader:
+            input_color, input_depth = data
+            input_color = input_color.to(device, dtype=torch.float)
+            input_depth = input_depth.to(device, dtype=torch.float)
+            label = label.to(device, dtype=torch.float)
+            pred_logits = model(input_color, input_depth)
 
             pred_probs = torch.sigmoid(pred_logits)
             pred_label = pred_probs > 0.5
 
-            #valid_loss += (bce_loss(pred, label.float()) + compute_dice_loss(pred, label.float()))
-            valid_loss += bce_loss(pred_logits, label)#, label.float())
+            valid_loss += bce_loss(pred_logits, label)
             valid_acc += compute_mean_pixel_acc(pred_label, label)
             valid_iou += compute_mean_iou(pred_label, label)
 
@@ -44,25 +45,22 @@ def validation_loop(dataset_loader, model, device):
     return valid_loss, valid_acc, valid_iou
 
 def train_loop(dataset_loader, model, optimizer, device):
+    model.train()
     bce_loss = get_bce_loss()
     size = len(dataset_loader.dataset)
     num_batches = len(dataset_loader)
     train_loss = 0
-    model.train()
 
-    for input_color, label in dataset_loader:
+    for data, label in dataset_loader:
         # Compute prediction and loss
-        #(input_color, input_depth), label = data
-        input_color, label = input_color.to(device, dtype=torch.float), label.to(device, dtype=torch.float)
+        input_color, input_depth = data
+        input_color = input_color.to(device, dtype=torch.float)
+        input_depth = input_depth.to(device, dtype=torch.float)
+        label = label.to(device, dtype=torch.float)
         optimizer.zero_grad()
-        #print(input_color.shape, input_color.dtype)
-        #print(input_depth.shape, input_depth.dtype)
-        #print(label.shape, label.dtype)
-        pred = model(input_color)#.float())#, input_depth.float())
-        loss_1 = bce_loss(pred, label)#.float())
-        #loss_1 = 0
-        #loss_2 = compute_dice_loss(pred, label.float())
-        loss = loss_1# + loss_2
+
+        pred = model(input_color, input_depth)
+        loss = bce_loss(pred, label)
 
         # Backpropagation
         loss.backward()
@@ -81,34 +79,32 @@ def batch_train(FLAGS):
 
     train_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_train_dataset,
         transforms.Compose([transforms.ToTensor()]))
-    train_dataset_loader = DataLoader(train_dataset, batch_size=FLAGS.batch_size, shuffle=False)
+    train_dataset_loader = DataLoader(train_dataset, batch_size=FLAGS.batch_size, shuffle=True)
 
     valid_dataset = RGBDGraspAffordanceDataset(FLAGS.dir_valid_dataset,
         transforms.Compose([transforms.ToTensor()]))
     valid_dataset_loader = DataLoader(valid_dataset, batch_size=FLAGS.batch_size, shuffle=False)
 
-    #grasp_aff_model = GraspAffordanceNet(pretrained=bool(FLAGS.pretrained))
-    grasp_aff_model = ResNetUNet(1)
+    grasp_aff_model = GraspAffordanceSegNet(pretrained=bool(FLAGS.pretrained))
+    #grasp_aff_model = ResNetUNet(1)
     grasp_aff_model.to(device)
+
+    """
     for l in grasp_aff_model.base_layers:
         for param in l.parameters():
             param.requires_grad = False
-
-    #"""
-    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, grasp_aff_model.parameters()), lr=FLAGS.learning_rate,
-        momentum=0.9)
-
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
-
     """
+
     optimizer = torch.optim.Adam(grasp_aff_model.parameters(), lr=FLAGS.learning_rate,
         weight_decay=0)
-    """
-    #print(grasp_aff_model.parameters())
+    #"""
+
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=8, gamma=0.1)
     print("Training for Grasp part affordance prediction")
     for epoch in range(FLAGS.num_epochs):
         t_1 = time.time()
         train_loss = train_loop(train_dataset_loader, grasp_aff_model, optimizer, device)
+        exp_lr_scheduler.step()
         t_2 = time.time()
         print("-"*100)
         print(f"Epoch : {epoch+1}/{FLAGS.num_epochs}, train loss: {train_loss:.4f}, time: {(t_2-t_1):.2f} sec.")
@@ -116,16 +112,15 @@ def batch_train(FLAGS):
         print(f"validation loss: {valid_loss:.4f}, validation accuracy: {valid_acc:.4f}, validation iou: {valid_iou:.4f}")
         csv_writer.write_row([epoch+1, train_loss.cpu().detach().numpy(), valid_loss.cpu().detach().numpy(), valid_acc, valid_iou])
         torch.save(grasp_aff_model.state_dict(), os.path.join(FLAGS.dir_model, f"{FLAGS.file_model}_{epoch+1}.pt"))
-        exp_lr_scheduler.step()
     print("Training complete!!!!")
     csv_writer.close()
 
 def main():
     dir_train_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part_affordance_subset/clutter/clutter_train/"
     dir_valid_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part_affordance_subset/clutter/clutter_valid/"
-    learning_rate = 3e-4
-    num_epochs = 80
-    batch_size = 4
+    learning_rate = 1e-4
+    num_epochs = 20
+    batch_size = 2
     dir_model = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     file_model = "affordance_net"
 
