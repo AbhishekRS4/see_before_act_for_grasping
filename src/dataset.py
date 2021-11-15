@@ -10,9 +10,9 @@ class RGBDGraspAffordanceDataset(Dataset):
     def __init__(self, dir_dataset, transform=None):
         self.dir_dataset = dir_dataset
 
-        self.depth_images_list = [f for f in os.listdir(self.dir_dataset) if f.endswith("depth.png")]
-        self.color_images_list = [f for f in os.listdir(self.dir_dataset) if f.endswith("rgb.jpg")]
-        self.labels_list = [f for f in os.listdir(self.dir_dataset) if f.endswith("label.mat")]
+        self.depth_images_list = sorted([f for f in os.listdir(self.dir_dataset) if f.endswith("depth.png")])
+        self.color_images_list = sorted([f for f in os.listdir(self.dir_dataset) if f.endswith("rgb.jpg")])
+        self.labels_list = sorted([f for f in os.listdir(self.dir_dataset) if f.endswith("label.mat")])
 
         self.color_mean = np.array([0.485, 0.456, 0.406]).reshape(1, 3)
         self.color_std = np.array([0.229, 0.224, 0.225]).reshape(1, 3)
