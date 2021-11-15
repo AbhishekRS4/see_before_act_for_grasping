@@ -14,19 +14,6 @@ class GraspAffordanceSegNet(nn.Module):
         self.grasp_color_encoder = densenet121(pretrained=pretrained)
         self.grasp_depth_encoder = densenet121(pretrained=pretrained)
 
-        """
-        self.graspnet = nn.Sequential(OrderedDict(
-            [
-                ("grasp-relu0", nn.ReLU(inplace=True)),
-                ("grasp-conv0", nn.Conv2d(2048, 512, kernel_size=1, stride=1, bias=False)),
-                ("grasp-norm1", nn.BatchNorm2d(64)),
-                ("grasp-relu1", nn.ReLU(inplace=True)),
-                #("grasp-conv1", nn.Conv2d(64, 1, kernel_size=1, stride=1, bias=False)),
-                ("grasp-conv-up1", nn.ConvTranspose2d(64, 1, kernel_size=16, stride=32, bias=False, output_padding=16)),
-            ]
-        ))
-        """
-
         self.graspnet = nn.Sequential(OrderedDict(
             [
                 ("grasp-relu0", nn.ReLU(inplace=True)),
