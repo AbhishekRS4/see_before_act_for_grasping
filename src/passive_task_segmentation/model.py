@@ -9,6 +9,9 @@ from torchvision.models import resnet18
 from torchvision.models.densenet import densenet121
 
 class GraspAffordanceSegNet(nn.Module):
+    # GraspAffordanceSegNet - GASNet
+    # To train grasp affordance segmentation - passive vision task
+
     def __init__(self, pretrained=True):
         super(GraspAffordanceSegNet, self).__init__()
         self.grasp_color_encoder = densenet121(pretrained=pretrained)
@@ -59,6 +62,7 @@ class GraspAffordanceSegNet(nn.Module):
 
         return output_logits
 
+"""
 def convrelu(in_channels, out_channels, kernel, padding):
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, kernel, padding=padding),
@@ -134,3 +138,4 @@ class ResNetUNet(nn.Module):
         out = self.conv_last(x)
 
         return out
+"""
