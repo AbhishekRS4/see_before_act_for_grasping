@@ -6,7 +6,7 @@ def get_network(network_name):
     elif network_name == 'ggcnn2':
         from .ggcnn2 import GGCNN2
         return GGCNN2
-    elif network_name == 'passive_to_active_net':
+    elif network_name == 'GAPANet':
         from .passive_to_active_net import GAPANet
         return GAPANet
     else:

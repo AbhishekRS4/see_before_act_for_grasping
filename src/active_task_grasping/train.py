@@ -24,10 +24,10 @@ from models.common import post_process_output
 logging.basicConfig(level=logging.INFO)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train GG-CNN', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description='Train GAPANet', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Network
-    parser.add_argument('--network', type=str, default='passive_to_active_net', help='Network Name in .models')
+    parser.add_argument('--network', type=str, default='GAPANet', help='Network Name in .models')
     parser.add_argument('--passive_model_checkpoint_path', type=str, default='affordance_seg_14.pt', help='passive model checkpoint path')
 
     # Dataset & Data & Training
@@ -266,12 +266,14 @@ def run():
         for n, l in test_results['losses'].items():
             tb.add_scalar('val_loss/' + n, l, epoch)
 
-        # Save best performing network
+        # Save all epoch networks
         iou = test_results['correct'] / (test_results['correct'] + test_results['failed'])
+        """
         if iou > best_iou or epoch == 0 or (epoch % 10) == 0:
-            torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
-            torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
             best_iou = iou
+        """
+        torch.save(net, os.path.join(save_folder, 'epoch_%02d_iou_%0.2f' % (epoch, iou)))
+        torch.save(net.state_dict(), os.path.join(save_folder, 'epoch_%02d_iou_%0.2f_statedict.pt' % (epoch, iou)))
 
 
 if __name__ == '__main__':
