@@ -38,6 +38,17 @@ python3 src/passive_task_segmentation/infer.py --help
 python3 src/active_task_grasping/train.py --help
 ```
 
+## Simulation experiments to evaluate grasping performance
+* For evaluating the performance of the trained grasping model, we used simulated YCB objects in PyBullet framework
+* The original repo is available here - [https://github.com/SeyedHamidreza/cognitive_robotics_manipulation](https://github.com/SeyedHamidreza/cognitive_robotics_manipulation)
+* The modified repo used for evaluation is here - [https://github.com/AbhishekRS4/cognitive_robotics_grasping_manipulation](https://github.com/AbhishekRS4/cognitive_robotics_grasping_manipulation)
+
+## Contact info of team members
+* Abhishek Ramanathapura Satyanarayana - <a.ramanathapura.satyanarayana@student.rug.nl>
+* Amit Bharti - <a.bharti.1@student.rug.nl>
+* Isabelle Tilleman - <i.w.m.tilleman@student.rug.nl>
+* Nikos Douros - <n.douros@student.rug.nl>
+
 ## References
 * [Learning to See before Learning to Act: Visual Pre-training for Manipulation](http://yenchenlin.me/vision2action/)
 * [GGCNN](https://github.com/dougsm/ggcnn)
