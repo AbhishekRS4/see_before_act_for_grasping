@@ -9,12 +9,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from model import GraspAffordanceNet
+from model import GraspAffordanceSegNet
 
 def argument_parser():
     dir_test_dataset = "/home/abhishek/Desktop/cognitive_robotics_lab/part_affordance_subset/clutter/clutter_test/"
-    model_checkpoint = "/home/abhishek/Desktop/cognitive_robotics_lab/object_grasp_affordance/2021-11-08_23-43-38/affordance_net_50.pt"
-    dir_predictions = "../dir_predictions"
+    model_checkpoint = "2021-11-15_14-30-58_grasp_affordance_seg_rgbd/affordance_net_14.pt"
+    dir_predictions = "dir_predictions_test"
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -25,8 +25,6 @@ def argument_parser():
 
     parser.add_argument("--pretrained", default=1,
         type=int, choices=[0, 1], help="use pretrained encoder (1:True, 0:False)")
-    parser.add_argument("--use_cuda", default=1, type=int,
-        choices=[0, 1], help="use gpu for training (1:True, 0:False)")
 
     parser.add_argument("--dir_predictions", default=dir_predictions,
         type=str, help="full directory path to save the predictions")
@@ -52,6 +50,8 @@ def batch_inference(FLAGS):
         os.makedirs(FLAGS.dir_predictions)
         print(f"Created directory : {FLAGS.dir_predictions}")
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # mean and std for color images
     color_mean = np.array([0.485, 0.456, 0.406]).reshape(1, 3)
     color_std = np.array([0.229, 0.224, 0.225]).reshape(1, 3)
@@ -61,13 +61,10 @@ def batch_inference(FLAGS):
     depth_std = np.array([0.03, 0.03, 0.03]).reshape(1, 3)
 
     # init model and set it in evaluation mode
-    grasp_aff_model = GraspAffordanceNet(pretrained=True)
+    grasp_aff_model = GraspAffordanceSegNet(pretrained=True)
     grasp_aff_model.eval()
     grasp_aff_model.load_state_dict(torch.load(FLAGS.model_checkpoint))
-
-    if FLAGS.use_cuda:
-        if torch.cuda.device_count() > 0:
-            grasp_aff_model.cuda()
+    grasp_aff_model.to(device)
 
     list_color_images = sorted([c for c in os.listdir(FLAGS.dir_test_dataset) if c.endswith("rgb.jpg")])
     list_depth_images = sorted([d for d in os.listdir(FLAGS.dir_test_dataset) if d.endswith("depth.png")])
@@ -92,9 +89,8 @@ def batch_inference(FLAGS):
         depth_image = np.transpose(depth_image, axes=[0, 3, 1, 2])
         depth_image = torch.tensor(depth_image).float()
 
-        if FLAGS.use_cuda:
-            if torch.cuda.device_count() > 0:
-                color_image, depth_image = color_image.cuda(), depth_image.cuda()
+        color_image = color_image.to(device, dtype=torch.float)
+        depth_image = depth_image.to(device, dtype=torch.float)
 
         pred_probs, pred_label = run_inference(grasp_aff_model, color_image, depth_image)
         np.save(os.path.join(FLAGS.dir_predictions, file_name.replace("rgb.jpg", "probs.npy")), np.squeeze(pred_probs))
