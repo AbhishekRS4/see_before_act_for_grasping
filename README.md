@@ -1,8 +1,8 @@
 # Learning to See before Learning to Act
 
 ## Implementation Notes
-* This repo contains the work as carried out as part of the Master's course [Cognitive_Robotics](https://www.rug.nl/ocasys/fwn/vak/show?code=WMAI003-05) at University of Groningen
-* This repo contains a variant of the implementation of **Learning to See before Learning to Act** paper, more details can be found in References
+* This repo contains the work carried out as part of the Master's course [Cognitive_Robotics](https://www.rug.nl/ocasys/fwn/vak/show?code=WMAI003-05) at University of Groningen
+* This repo contains a variation of the idea presented in **Learning to See before Learning to Act** paper, more details can be found in References
 * Firstly, the training is done on passive vision task to learn to detect objects. We chose segmentation and in particular grasp affordance segmentation instead of foreground segmentation as mentioned in the paper
 * The trained passive vision task model is then transferred to learn an active vision task which is grasping
 
@@ -39,7 +39,7 @@ python3 src/active_task_grasping/train.py --help
 ```
 
 ## Simulation experiments to evaluate grasping performance
-* For evaluating the performance of the trained grasping model, we used simulated YCB objects in PyBullet framework
+* For evaluating the performance of the trained grasping model, we used simulated **YCB** objects in PyBullet framework
 * The original repo is available here - [https://github.com/SeyedHamidreza/cognitive_robotics_manipulation](https://github.com/SeyedHamidreza/cognitive_robotics_manipulation)
 * The modified repo used for evaluation is here - [https://github.com/AbhishekRS4/cognitive_robotics_grasping_manipulation](https://github.com/AbhishekRS4/cognitive_robotics_grasping_manipulation)
 
@@ -54,3 +54,4 @@ python3 src/active_task_grasping/train.py --help
 * [GGCNN](https://github.com/dougsm/ggcnn)
 * [UMD Grasp affordance segmentation RGBD dataset](http://users.umiacs.umd.edu/~fer/affordance/part-affordance-dataset/)
 * [Jacquard dataset main page](https://jacquard.liris.cnrs.fr/index.php)
+* [YCB dataset](https://www.ycbbenchmarks.com/)
