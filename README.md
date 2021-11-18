@@ -15,7 +15,7 @@
 ## Active vision task [grasping]
 * The model which was learnt in the passive vision task is transferred to initialize the learning of active vision task of grasping
 * A major portion of the code for learning grasping task is borrowed from [GGCNN](https://github.com/dougsm/ggcnn) repository
-* Our code is in [src/active_task_grasping/](src/active_task_grasping/)
+* The modified code is in [src/active_task_grasping/](src/active_task_grasping/)
 * The dataset used for training active vision task is [Jacquard sample dataset](https://jacquard.liris.cnrs.fr/files/Jacquard_Samples.zip)
 * The main page of [Jacquard dataset main page](https://jacquard.liris.cnrs.fr/index.php)
 
