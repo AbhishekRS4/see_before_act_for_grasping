@@ -32,6 +32,7 @@ python3 src/passive_task_segmentation/infer.py --help
 * To visualize data samples and evaluate the performance of the passive vision task, use the notebook in [src/passive_task_segmentation/helper_notebooks/passive_task.ipynb](src/passive_task_segmentation/helper_notebooks/passive_task.ipynb)
 
 ## Instruction to run scripts for active vision task [grasping]
+* The [src/active_task_grasping/requirements.txt](src/active_task_grasping/requirements.txt) lists all requirements required for active vision task
 * To list all training options
 ```
 python3 src/active_task_grasping/train.py --help
