@@ -3,7 +3,7 @@
 ## Implementation Notes
 * This repo contains the work carried out as part of the Master's course [Cognitive_Robotics](https://www.rug.nl/ocasys/fwn/vak/show?code=WMAI003-05) at University of Groningen
 * This repo contains a variation of the idea presented in **Learning to See before Learning to Act** paper, more details can be found in References
-* Firstly, the training is done on passive vision task to learn to detect objects. We chose segmentation and in particular grasp affordance segmentation instead of foreground segmentation as mentioned in the paper
+* Firstly, the training is done on passive vision task to learn to detect objects. We chose segmentation and in particular object grasp affordance segmentation instead of foreground segmentation as mentioned in the paper
 * The trained passive vision task model is then transferred to learn an active vision task which is grasping
 
 ## Pretrained model used for passive vision task [segmentation]
